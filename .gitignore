@@ -1,2 +1,4 @@
 **/*.wasm
 **/target/*
+.vscode/settings.json
+.vscode/ltex.*
