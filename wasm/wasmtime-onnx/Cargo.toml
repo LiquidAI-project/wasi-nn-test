@@ -1,0 +1,29 @@
+[package]
+name = "wasmtime-onnx"
+version = "0.1.1"
+authors = ["Radu M <root@radu.sh>", "Ville Heikkilä"]
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.80"
+byteorder = "1.5.0"
+log = { version = "0.4.21", default-features = false }
+ndarray = "0.15.6"
+ort = "2.0.0-alpha.4"
+thiserror = "1.0.57"
+wasmtime = "18.0.2"
+wasmtime-runtime = "18.0.2"
+wasmtime-wasi = "18.0.2"
+wasi-common = "18.0.2"
+wiggle = "18.0.2"
+
+[profile.release-lto]
+inherits = "release"
+lto = true
+strip = "debuginfo"
+
+[profile.release-lto.build-override]
+opt-level = 3
+codegen-units = 256
+debug = false
+debug-assertions = false
