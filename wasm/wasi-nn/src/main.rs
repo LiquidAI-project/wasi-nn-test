@@ -64,7 +64,8 @@ fn get_result(model: &Graph, image_name: &str) -> Result<(f32, i32), ErrorType> 
         Err(_) => return Err(ErrorType::ModelRun),
     }
 
-    let mut output_buffer: Vec<f32> = Vec::new();
+    const OUTPUT_BUFFER_CAPACITY: usize = 4000;  // arbitrary max size
+    let mut output_buffer: Vec<f32> = vec![0.0; OUTPUT_BUFFER_CAPACITY];
     match context.get_output(0, &mut output_buffer) {
         Ok(_) => (),
         Err(_) => return Err(ErrorType::TensorExtract),
@@ -156,4 +157,6 @@ pub fn run_inference(model_index: i32, image_index: i32) -> i32 {
 }
 
 
-fn main() {}
+fn main() {
+    run_inference(1, 1);
+}
