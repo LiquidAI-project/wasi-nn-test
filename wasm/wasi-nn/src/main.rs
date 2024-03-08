@@ -5,7 +5,7 @@ extern crate anyhow;
 extern crate ndarray;
 
 use anyhow::Error;
-use std::{cmp::Ordering, ops::RangeFrom};
+use std::{cmp::Ordering, ops::RangeFrom, time::Instant};
 use image::{imageops::FilterType, Pixel};
 use ndarray::s;
 // use image2tensor::{ColorOrder, TensorType};
@@ -54,15 +54,12 @@ pub fn image_to_tensor(
     height: u32,
     width: u32,
 ) -> Result<Vec<u8>, Error> {
-    println!("trying to load image {:#?}", path);
     let image = image::imageops::resize(
         &image::open(path)?,
         width,
         height,
         ::FilterType::Triangle,
     );
-
-    println!("resized image: {:#?}", image.dimensions());
 
     let mut array = ndarray::Array::from_shape_fn((1, 3, 224, 224), |(_, c, j, i)| {
         let pixel = image.get_pixel(i as u32, j as u32);
@@ -99,28 +96,36 @@ fn get_result(model: &Graph, image_name: &str) -> Result<(f32, i32), ErrorType> 
     // const MODEL_IMAGE_COLOR_ORDER: ColorOrder = ColorOrder::RGB;
     const MODEL_INPUT_DIMENSIONS: [usize; 4] = [1, 3, MODEL_IMAGE_WIDTH as usize, MODEL_IMAGE_HEIGHT as usize];
 
+    let result_start: Instant = Instant::now();
+
     let mut context: GraphExecutionContext<'_> = match model.init_execution_context() {
         Ok(context) => context,
         Err(_) => return Err(ErrorType::SessionCreation),
     };
-    println!("Execution context created.");
+    let context_creation_time = result_start.elapsed();
+    println!("Wasm: Context created in: {:?}", context_creation_time);
 
     let image = match load_image(image_name, MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT) {
     // let image = match load_image(image_name, MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT, MODEL_IMAGE_PRECISION, MODEL_IMAGE_COLOR_ORDER) {
         Ok(image) => image,
         Err(_) => return Err(ErrorType::ImageLoad),
     };
-    println!("Image loaded: {:?}", image_name);
+    let image_load_time = result_start.elapsed() - context_creation_time;
+    println!("Wasm: Image loaded in: {:?}", image_load_time);
 
     match context.set_input(0, wasi_nn::TensorType::F32, &MODEL_INPUT_DIMENSIONS, &image) {
         Ok(_) => (),
         Err(_) => return Err(ErrorType::ModelRun),
     }
+    let input_set_time = result_start.elapsed() - image_load_time - context_creation_time;
+    println!("Wasm: Input set in: {:?}", input_set_time);
 
     match context.compute() {
         Ok(_) => (),
         Err(_) => return Err(ErrorType::ModelRun),
     }
+    let model_run_time = result_start.elapsed() - input_set_time - image_load_time - context_creation_time;
+    println!("Wasm: Model run in: {:?}", model_run_time);
 
     const OUTPUT_BUFFER_CAPACITY: usize = 4000;  // arbitrary max size
     let mut output_buffer: Vec<f32> = vec![0.0; OUTPUT_BUFFER_CAPACITY];
@@ -128,13 +133,19 @@ fn get_result(model: &Graph, image_name: &str) -> Result<(f32, i32), ErrorType> 
         Ok(_) => (),
         Err(_) => return Err(ErrorType::TensorExtract),
     }
+    let tensor_extract_time = result_start.elapsed() - model_run_time - input_set_time - image_load_time - context_creation_time;
+    println!("Wasm: Tensor extracted in: {:?}", tensor_extract_time);
 
-    output_buffer
+    let result = output_buffer
         .iter()
         .cloned()
         .zip(RangeFrom::<i32>{start: 2})  // add the indexes for the labels
         .max_by(|(score1, _), (score2, _)| score1.partial_cmp(score2).unwrap_or(Ordering::Equal))
-        .map_or_else(|| Err(ErrorType::NoResult), Ok)
+        .map_or_else(|| Err(ErrorType::NoResult), Ok);
+    let result_calculation_time = result_start.elapsed() - tensor_extract_time - model_run_time - input_set_time - image_load_time - context_creation_time;
+    println!("Wasm: Result calculated in: {:?}", result_calculation_time);
+
+    result
 }
 
 
@@ -188,7 +199,8 @@ pub fn run_inference(model_index: i32, image_index: i32) -> i32 {
         }
     };
 
-    println!("Running inference with model: {} and image: {}", model_filename, image_name);
+    // println!("Running inference with model: {} and image: {}", model_filename, image_name);
+    let start: Instant = Instant::now();
 
     let model = match load_model(model_filename) {
         Ok(graph) => graph,
@@ -197,14 +209,17 @@ pub fn run_inference(model_index: i32, image_index: i32) -> i32 {
             return get_error_code(ErrorType::ModelLoad);
         }
     };
-    println!("Model loaded: {:?}", model_filename);
+    let model_load_time = start.elapsed();
+    println!("Wasm: Model loaded in: {:?}", model_load_time);
 
     let result = get_result(&model, image_name);
-    println!("Result: {:?}", result);
+    let result_calculation_time = start.elapsed() - model_load_time;
+    println!("Wasm: Result: {:?}", result);
+    println!("Wasm: Inference time: {:?}", result_calculation_time);
 
     match result {
         Ok((score, class)) => {
-            println!("{}: {} (score: {})", image_name, class, score);
+            println!("Wasm: {}: {} (score: {})", image_name, class, score);
             class
         },
         Err(error) => {
