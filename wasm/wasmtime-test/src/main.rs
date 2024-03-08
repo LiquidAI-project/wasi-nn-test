@@ -62,6 +62,7 @@ fn main() -> wasmtime::Result<()> {
     let image_name: &str = &args[2];
     let model_index = get_model_index(model_filename).unwrap();
     let image_index = get_image_index(image_name).unwrap();
+    let repeats: u32 = args[3].parse().unwrap();
 
     const WASM_MODULE_FILENAME: &str = "wasi-nn-onnx-test.wasm";
 
@@ -108,16 +109,30 @@ fn main() -> wasmtime::Result<()> {
         .get(&mut store, "wasi-nn", "run_inference").unwrap()
         .into_func().unwrap()
         .typed::<(i32, i32), (i32,)>(&mut store).unwrap();
-    let function_load_time = start.elapsed() - module_load_time;
+    let function_load_time = start.elapsed() - environment_set_time - module_load_time;
     // println!("Calling inference function");
     let result = inference_function.call(&mut store, (model_index, image_index));
-    let inference_time = start.elapsed() - function_load_time;
+    let inference_time = start.elapsed() -environment_set_time - module_load_time - function_load_time;
     println!("Result: {:?}", result);
 
     println!("Environment set time: {:?}", environment_set_time);
     println!("Module load time: {:?}", module_load_time);
     println!("Function load time: {:?}", function_load_time);
     println!("Inference time: {:?}", inference_time);
+
+    println!("");
+
+    // test the repeated inference performance
+    let start2: Instant = Instant::now();
+    let inference_multiple_function = linker
+        .get(&mut store, "wasi-nn", "run_multiple_inference").unwrap()
+        .into_func().unwrap()
+        .typed::<(i32, i32, u32), (f32,)>(&mut store).unwrap();
+    let function2_load_time = start2.elapsed();
+    let result2 = inference_multiple_function.call(&mut store, (model_index, image_index, repeats));
+    println!("Result for multiple inference: {:?}", result2);
+    let multiple_inference_time = start2.elapsed() - function2_load_time;
+    println!("Multiple inference time: {:?}", multiple_inference_time);
 
     Ok(())
 }

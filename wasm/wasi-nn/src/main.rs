@@ -89,7 +89,7 @@ fn load_image(path: &str, width: u32, height: u32) -> Result<Vec<u8>, String> {
 }
 
 
-fn get_result(model: &Graph, image_name: &str) -> Result<(f32, i32), ErrorType> {
+fn get_result(model: &Graph, image_name: &str, verbose: bool) -> Result<(f32, i32), ErrorType> {
     const MODEL_IMAGE_WIDTH: u32 = 224;
     const MODEL_IMAGE_HEIGHT: u32 = 224;
     // const MODEL_IMAGE_PRECISION: TensorType = TensorType::F32;
@@ -103,7 +103,9 @@ fn get_result(model: &Graph, image_name: &str) -> Result<(f32, i32), ErrorType> 
         Err(_) => return Err(ErrorType::SessionCreation),
     };
     let context_creation_time = result_start.elapsed();
-    println!("Wasm: Context created in: {:?}", context_creation_time);
+    if verbose {
+        println!("Wasm: Context created in: {:?}", context_creation_time);
+    }
 
     let image = match load_image(image_name, MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT) {
     // let image = match load_image(image_name, MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT, MODEL_IMAGE_PRECISION, MODEL_IMAGE_COLOR_ORDER) {
@@ -111,21 +113,27 @@ fn get_result(model: &Graph, image_name: &str) -> Result<(f32, i32), ErrorType> 
         Err(_) => return Err(ErrorType::ImageLoad),
     };
     let image_load_time = result_start.elapsed() - context_creation_time;
-    println!("Wasm: Image loaded in: {:?}", image_load_time);
+    if verbose {
+        println!("Wasm: Image loaded in: {:?}", image_load_time);
+    }
 
     match context.set_input(0, wasi_nn::TensorType::F32, &MODEL_INPUT_DIMENSIONS, &image) {
         Ok(_) => (),
         Err(_) => return Err(ErrorType::ModelRun),
     }
     let input_set_time = result_start.elapsed() - image_load_time - context_creation_time;
-    println!("Wasm: Input set in: {:?}", input_set_time);
+    if verbose {
+        println!("Wasm: Input set in: {:?}", input_set_time);
+    }
 
     match context.compute() {
         Ok(_) => (),
         Err(_) => return Err(ErrorType::ModelRun),
     }
     let model_run_time = result_start.elapsed() - input_set_time - image_load_time - context_creation_time;
-    println!("Wasm: Model run in: {:?}", model_run_time);
+    if verbose {
+        println!("Wasm: Model run in: {:?}", model_run_time);
+    }
 
     const OUTPUT_BUFFER_CAPACITY: usize = 4000;  // arbitrary max size
     let mut output_buffer: Vec<f32> = vec![0.0; OUTPUT_BUFFER_CAPACITY];
@@ -134,7 +142,9 @@ fn get_result(model: &Graph, image_name: &str) -> Result<(f32, i32), ErrorType> 
         Err(_) => return Err(ErrorType::TensorExtract),
     }
     let tensor_extract_time = result_start.elapsed() - model_run_time - input_set_time - image_load_time - context_creation_time;
-    println!("Wasm: Tensor extracted in: {:?}", tensor_extract_time);
+    if verbose {
+        println!("Wasm: Tensor extracted in: {:?}", tensor_extract_time);
+    }
 
     let result = output_buffer
         .iter()
@@ -143,7 +153,9 @@ fn get_result(model: &Graph, image_name: &str) -> Result<(f32, i32), ErrorType> 
         .max_by(|(score1, _), (score2, _)| score1.partial_cmp(score2).unwrap_or(Ordering::Equal))
         .map_or_else(|| Err(ErrorType::NoResult), Ok);
     let result_calculation_time = result_start.elapsed() - tensor_extract_time - model_run_time - input_set_time - image_load_time - context_creation_time;
-    println!("Wasm: Result calculated in: {:?}", result_calculation_time);
+    if verbose {
+        println!("Wasm: Result calculated in: {:?}", result_calculation_time);
+    }
 
     result
 }
@@ -212,7 +224,7 @@ pub fn run_inference(model_index: i32, image_index: i32) -> i32 {
     let model_load_time = start.elapsed();
     println!("Wasm: Model loaded in: {:?}", model_load_time);
 
-    let result = get_result(&model, image_name);
+    let result = get_result(&model, image_name, true);
     let result_calculation_time = start.elapsed() - model_load_time;
     println!("Wasm: Result: {:?}", result);
     println!("Wasm: Inference time: {:?}", result_calculation_time);
@@ -227,6 +239,46 @@ pub fn run_inference(model_index: i32, image_index: i32) -> i32 {
             get_error_code(error)
         }
     }
+}
+
+
+#[no_mangle]
+pub fn run_multiple_inference(model_index: i32, image_index: i32, n: u32) -> f32 {
+    let model_filename = match get_model_filename(&model_index) {
+        Some(filename) => filename,
+        None => {
+            println!("Error: Invalid model index");
+            return get_error_code(ErrorType::ModelLoad) as f32;
+        }
+    };
+
+    let image_name = match get_image_name(&image_index) {
+        Some(filename) => filename,
+        None => {
+            println!("Error: Invalid image index");
+            return get_error_code(ErrorType::ImageLoad) as f32;
+        }
+    };
+
+    let start: Instant = Instant::now();
+
+    let model = match load_model(model_filename) {
+        Ok(graph) => graph,
+        Err(error) => {
+            println!("Error loading model: {:?}", error);
+            return get_error_code(ErrorType::ModelLoad) as f32;
+        }
+    };
+    let model_load_time = start.elapsed();
+    println!("Wasm: Model loaded in: {:?}", model_load_time);
+
+    for _ in 0..n {
+        let _ = get_result(&model, image_name, false);
+    }
+    let result_calculation_time = start.elapsed() - model_load_time;
+    println!("Wasm: Inference time: {:?} for {} repeats", result_calculation_time, n);
+
+    (model_load_time + result_calculation_time).as_millis() as f32
 }
 
 

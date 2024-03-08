@@ -141,13 +141,14 @@ pub fn main() -> Result<(), i32> {
     tracing_subscriber::fmt::init();
 
     let args: Vec<String> = env::args().collect();
-    if args.len() != 3 {
-        println!("Usage: {} <model> <image>", args[0]);
+    if args.len() != 4 {
+        println!("Usage: {} <model> <image> <number of repeats>", args[0]);
         return Err(-10);
     }
 
     let model_filename: &str = &args[1];
     let image_name: &str = &args[2];
+    let repeats: u32 = args[3].parse().unwrap();
 
     let start: Instant = Instant::now();
     let model_result = load_model(model_filename);
@@ -161,14 +162,14 @@ pub fn main() -> Result<(), i32> {
     let result = get_result(&model, image_name);
     let duration2: Duration = start.elapsed() - duration1;
 
-    for _ in 0..100 {
+    for _ in 0..repeats {
         let _ = get_result(&model, image_name);
     }
     let duration3: Duration = start.elapsed() - duration1 - duration2;
 
     println!("Loading the model took {:?}", duration1);
     println!("Running the model took {:?}", duration2);
-    println!("Running the model 100 times took {:?}", duration3);
+    println!("Running the model {} times took {:?}", repeats, duration3);
 
     match result {
         Ok((score, class)) => {
