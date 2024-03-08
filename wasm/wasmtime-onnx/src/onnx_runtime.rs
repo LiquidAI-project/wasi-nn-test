@@ -220,6 +220,7 @@ impl WasiEphemeralNn for WasiNnOnnxCtx {
 
         match execution.input_tensors {
             Some(ref mut input_tensors) => {
+                input_tensors.clear();  // TODO: is there another way to clear the previously given input tensors?
                 input_tensors.push(input);
                 log::info!(
                     "set_input: input tensors now contains {} items",
@@ -327,7 +328,9 @@ impl WasiEphemeralNn for WasiNnOnnxCtx {
         match execution.output_tensors {
             Some(_) => {
                 log::error!("compute: existing data in output_tensors, aborting");
-                return Err(WasiNnError::RuntimeError);
+                // return Err(WasiNnError::RuntimeError);
+                // TODO: ignore the error and just overwrite the existing output tensors
+                execution.output_tensors = Some(output_vec_from_tensors(output_tensors)?);
             }
             None => {
                 execution.output_tensors = Some(output_vec_from_tensors(output_tensors)?);
