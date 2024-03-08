@@ -9,7 +9,7 @@ use anyhow::{Ok, Result};
 use wasmtime::{Config, Engine, Module, Store};
 use wasi_common::{sync::Dir, sync::WasiCtxBuilder, WasiCtx};
 use wasmtime_onnx::WasiNnOnnxCtx;
-use std::path::Path;
+use std::{env, path::Path, time::Instant};
 
 
 /// The host state for running wasi-nn tests.
@@ -38,13 +38,38 @@ impl Ctx {
     }
 }
 
+fn get_model_index(model_name: &str) -> Option<i32> {
+    match model_name {
+        "models/mobilenetv2-10.onnx" => Some(1),
+        "models/mobilenetv2-12.onnx" => Some(2),
+        _ => None,
+    }
+}
+
+fn get_image_index(image_name: &str) -> Option<i32> {
+    match image_name {
+        "images/landrover.jpg" => Some(1),
+        "images/husky.jpg" => Some(2),
+        "images/golden-retriever.jpg" => Some(3),
+        _ => None,
+    }
+}
+
 
 fn main() -> wasmtime::Result<()> {
+    let args: Vec<String> = env::args().collect();
+    let model_filename: &str = &args[1];
+    let image_name: &str = &args[2];
+    let model_index = get_model_index(model_filename).unwrap();
+    let image_index = get_image_index(image_name).unwrap();
+
     const WASM_MODULE_FILENAME: &str = "wasi-nn-onnx-test.wasm";
 
     const MODEL_DIR: &str = "models";
     const IMAGE_DIR: &str = "images";
     let shared_dirs: Vec<&str> = vec![MODEL_DIR, IMAGE_DIR];
+
+    let start: Instant = Instant::now();
 
     let config = Config::default();
     let engine = Engine::new(&config)?;
@@ -58,30 +83,41 @@ fn main() -> wasmtime::Result<()> {
         Ctx::new(&shared_dirs)?
     );
 
+    let environment_set_time = start.elapsed();
+
     println!("Loading module from file: {}", WASM_MODULE_FILENAME);
     let module = Module::from_file(&engine, WASM_MODULE_FILENAME)?;
-    println!("Module loaded successfully");
+    // println!("Module loaded successfully");
 
     // Print the expected imports
-    for import in module.imports() {
-        println!("Module expects import with module '{}' and name '{}'", import.module(), import.name());
-    }
+    // for import in module.imports() {
+    //     println!("Module expects import with module '{}' and name '{}'", import.module(), import.name());
+    // }
 
     // print the exports from the module
-    for export in module.exports() {
-        println!("Exported function: {}", export.name());
-    }
+    // for export in module.exports() {
+    //     println!("Exported function: {}", export.name());
+    // }
 
     // add the module to the linker
-    let linker_update = linker.module(&mut store, "wasi-nn", &module);
-    println!("Linker updated: {:?}", linker_update.err());
+    linker.module(&mut store, "wasi-nn", &module)?;
+
+    let module_load_time = start.elapsed() - environment_set_time;
 
     let inference_function = linker
         .get(&mut store, "wasi-nn", "run_inference").unwrap()
         .into_func().unwrap()
         .typed::<(i32, i32), (i32,)>(&mut store).unwrap();
-    println!("Calling inference function");
-    let result = inference_function.call(&mut store, (1, 1));
+    let function_load_time = start.elapsed() - module_load_time;
+    // println!("Calling inference function");
+    let result = inference_function.call(&mut store, (model_index, image_index));
+    let inference_time = start.elapsed() - function_load_time;
     println!("Result: {:?}", result);
+
+    println!("Environment set time: {:?}", environment_set_time);
+    println!("Module load time: {:?}", module_load_time);
+    println!("Function load time: {:?}", function_load_time);
+    println!("Inference time: {:?}", inference_time);
+
     Ok(())
 }

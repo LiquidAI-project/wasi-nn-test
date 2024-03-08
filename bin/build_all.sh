@@ -10,4 +10,4 @@ cp target/wasm32-wasi/release/wasi-nn-onnx-test.wasm ../../bin
 
 cd ../wasmtime-test
 cargo build --release
-cp target/release/wasmtime-test ../bin
+cp target/release/wasmtime-test ../../bin
