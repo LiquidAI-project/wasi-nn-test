@@ -9,12 +9,11 @@ use crate::{
     },
     WasiNnError, WasiNnResult as Result,
 };
-use ndarray::{Array, ArrayBase, Dim, IxDynImpl, OwnedRepr};
+use ndarray::{Array, Dim, IxDynImpl};
 use ort::{CPUExecutionProvider, GraphOptimizationLevel, Session, Tensor as OrtTensor, TensorElementType, Value};
 use std::{
     borrow::BorrowMut,
     collections::{btree_map::Keys, BTreeMap},
-    convert::TryInto,
     fmt::Debug,
     sync::{Arc, PoisonError, RwLock, RwLockReadGuard, RwLockWriteGuard},
 };
@@ -307,13 +306,8 @@ impl WasiEphemeralNn for WasiNnOnnxCtx {
             input_tensors.len()
         );
 
-        let session_input: Vec<Value> = input_tensors
-            .iter()
-            .map(|tensor|  TryInto::<Value>::try_into(<ArrayBase<OwnedRepr<f32>, Dim<IxDynImpl>> as Clone>::clone(&*tensor)).unwrap())
-            .collect();
-        let session_input_array = TryInto::<[Value; 4]>::try_into(session_input).unwrap();
-
-        let binding = execution.session.run(session_input_array)?;
+        let session_input: Value = Value::from_array(input_tensors.first().unwrap().clone())?;
+        let binding = execution.session.run([session_input])?;
         let output_tensors: Vec<OrtTensor<'_, f32>> =
             binding
                 .iter()
