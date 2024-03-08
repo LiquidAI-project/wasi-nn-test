@@ -1,0 +1,17 @@
+[package]
+name = "wasmtime-test"
+version = "0.0.1"
+authors = ["Ville Heikkilä"]
+
+[dependencies]
+anyhow = "1.0.80"
+wasmtime = { version = "18.0.2", features = ["component-model", "runtime", "cranelift"] }
+tracing = "0.1.26"
+thiserror = "1.0.25"
+cap-std = "3.0.0"
+wasi-common = { version = "18.0.2", features = ["sync"] }
+wasmtime-wasi = "18.0.2"
+wasmtime-onnx = { path = "../wasmtime-onnx" }
+
+[build-dependencies]
+walkdir = "2.5.0"

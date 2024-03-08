@@ -2,4 +2,3 @@
 **/target/*
 .vscode/settings.json
 .vscode/ltex.*
-wasmtime-test
