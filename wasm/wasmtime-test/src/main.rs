@@ -51,6 +51,7 @@ fn get_image_index(image_name: &str) -> Option<i32> {
         "images/landrover.jpg" => Some(1),
         "images/husky.jpg" => Some(2),
         "images/golden-retriever.jpg" => Some(3),
+        "images/bigmac.png" => Some(4),
         _ => None,
     }
 }

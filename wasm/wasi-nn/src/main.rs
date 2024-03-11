@@ -193,6 +193,7 @@ fn get_image_name(image_index: &i32) -> Option<&str> {
         1 => Some("images/landrover.jpg"),
         2 => Some("images/husky.jpg"),
         3 => Some("images/golden-retriever.jpg"),
+        4 => Some("images/bigmac.png"),
         _ => None,
     }
 }
