@@ -153,7 +153,7 @@ fn get_result(
     let result = output_buffer
         .iter()
         .cloned()
-        .zip(RangeFrom::<i32>{start: 2})  // add the indexes for the labels
+        .zip(RangeFrom::<i32>{start: 1})  // add the indexes for the labels
         .max_by(|(score1, _), (score2, _)| score1.partial_cmp(score2).unwrap_or(Ordering::Equal))
         .map_or_else(|| Err(ErrorType::NoResult), Ok);
     let result_calculation_time = result_start.elapsed() - tensor_extract_time - model_run_time - input_set_time - image_load_time;

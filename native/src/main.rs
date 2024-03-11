@@ -117,7 +117,7 @@ fn get_result(model: &Session, image_name: &str) -> Result<(f32, i32), ErrorType
         .view()
         .iter()
         .cloned()
-        .zip(RangeFrom::<i32>{start: 2})  // add the indexes for the labels
+        .zip(RangeFrom::<i32>{start: 1})  // add the indexes for the labels
         .max_by(|(score1, _), (score2, _)| score1.partial_cmp(score2).unwrap_or(Ordering::Equal))
         .map_or_else(|| Err(ErrorType::NoResult), Ok)
 }
