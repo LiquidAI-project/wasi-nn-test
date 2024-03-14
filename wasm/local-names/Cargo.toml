@@ -1,0 +1,7 @@
+[package]
+name = "local-names"
+version = "0.0.1"
+authors = ["Ville Heikkilä"]
+
+[dependencies]
+lazy_static = "1.4.0"

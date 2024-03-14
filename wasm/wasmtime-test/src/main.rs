@@ -4,12 +4,14 @@ extern crate wasi_common;
 extern crate wasmtime_onnx;
 extern crate anyhow;
 extern crate cap_std;
+extern crate local_names;
 
 use anyhow::{Ok, Result};
 use wasmtime::{Config, Engine, Module, Store};
 use wasi_common::{sync::Dir, sync::WasiCtxBuilder, WasiCtx};
 use wasmtime_onnx::WasiNnOnnxCtx;
 use std::{env, path::Path, time::Instant};
+use local_names::{get_image_index, get_model_index};
 
 
 /// The host state for running wasi-nn tests.
@@ -35,24 +37,6 @@ impl Ctx {
         let wasi_nn = WasiNnOnnxCtx::default();
 
         Ok(Self { wasi, wasi_nn })
-    }
-}
-
-fn get_model_index(model_name: &str) -> Option<i32> {
-    match model_name {
-        "models/mobilenetv2-10.onnx" => Some(1),
-        "models/mobilenetv2-12.onnx" => Some(2),
-        _ => None,
-    }
-}
-
-fn get_image_index(image_name: &str) -> Option<i32> {
-    match image_name {
-        "images/landrover.jpg" => Some(1),
-        "images/husky.jpg" => Some(2),
-        "images/golden-retriever.jpg" => Some(3),
-        "images/bigmac.png" => Some(4),
-        _ => None,
     }
 }
 

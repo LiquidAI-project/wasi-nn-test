@@ -12,6 +12,7 @@ cap-std = "3.0.0"
 wasi-common = { version = "18.0.2", features = ["sync"] }
 wasmtime-wasi = "18.0.2"
 wasmtime-onnx = { path = "../wasmtime-onnx" }
+local-names = { path = "../local-names" }
 
 [build-dependencies]
 walkdir = "2.5.0"

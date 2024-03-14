@@ -3,6 +3,7 @@ extern crate image;
 extern crate wasi_nn;
 extern crate anyhow;
 extern crate ndarray;
+extern crate local_names;
 
 use anyhow::Error;
 use std::{cmp::Ordering, ops::RangeFrom, time::Instant};
@@ -10,6 +11,7 @@ use image::{imageops::FilterType, Pixel};
 use ndarray::s;
 // use image2tensor::{ColorOrder, TensorType};
 use wasi_nn::{ExecutionTarget, Graph, GraphBuilder, GraphEncoding, GraphExecutionContext};
+use local_names::{get_image_name, get_model_name};
 
 
 #[derive(Debug)]
@@ -27,7 +29,7 @@ pub enum ErrorType {
 }
 
 
-fn load_model(filename: &str) -> Result<Graph, wasi_nn::Error> {
+fn load_model(filename: String) -> Result<Graph, wasi_nn::Error> {
     GraphBuilder::new(
         GraphEncoding::Onnx,
         ExecutionTarget::CPU
@@ -82,10 +84,10 @@ pub fn image_to_tensor(
 }
 
 
-fn load_image(path: &str, width: u32, height: u32) -> Result<Vec<u8>, String> {
+fn load_image(path: String, width: u32, height: u32) -> Result<Vec<u8>, String> {
 // fn load_image(path: &str, width: u32, height: u32, precision: TensorType, color_order: ColorOrder) -> Result<Vec<u8>, String> {
     // image2tensor::convert_image_to_tensor_bytes(path, width, height, precision, color_order)
-    image_to_tensor(path, width, height).map_err(|e| e.to_string())
+    image_to_tensor(&path, width, height).map_err(|e| e.to_string())
 }
 
 
@@ -100,7 +102,7 @@ fn get_execution_context(model: &Graph) -> Result<GraphExecutionContext<'_>, Err
 fn get_result(
     // model: &Graph,
     context: &mut GraphExecutionContext<'_>,
-    image_name: &str,
+    image_name: String,
     verbose: bool
 ) -> Result<(f32, i32), ErrorType> {
     const MODEL_IMAGE_WIDTH: u32 = 224;
@@ -180,27 +182,9 @@ fn get_error_code(error: ErrorType) -> i32 {
     }
 }
 
-fn get_model_filename(model_index: &i32) -> Option<&str> {
-    match model_index {
-        1 => Some("models/mobilenetv2-10.onnx"),
-        2 => Some("models/mobilenetv2-12.onnx"),
-        _ => None,
-    }
-}
-
-fn get_image_name(image_index: &i32) -> Option<&str> {
-    match image_index {
-        1 => Some("images/landrover.jpg"),
-        2 => Some("images/husky.jpg"),
-        3 => Some("images/golden-retriever.jpg"),
-        4 => Some("images/bigmac.png"),
-        _ => None,
-    }
-}
-
 #[no_mangle]
 pub fn run_inference(model_index: i32, image_index: i32) -> i32 {
-    let model_filename = match get_model_filename(&model_index) {
+    let model_filename = match get_model_name(model_index) {
         Some(filename) => filename,
         None => {
             println!("Error: Invalid model index");
@@ -208,7 +192,7 @@ pub fn run_inference(model_index: i32, image_index: i32) -> i32 {
         }
     };
 
-    let image_name = match get_image_name(&image_index) {
+    let image_name = match get_image_name(image_index) {
         Some(filename) => filename,
         None => {
             println!("Error: Invalid image index");
@@ -239,7 +223,7 @@ pub fn run_inference(model_index: i32, image_index: i32) -> i32 {
     let context_creation_time = start.elapsed();
     println!("Wasm: Context created in: {:?}", context_creation_time);
 
-    let result = get_result(&mut context, image_name, true);
+    let result = get_result(&mut context, image_name.clone(), true);
     let result_calculation_time = start.elapsed() - model_load_time - context_creation_time;
     println!("Wasm: Result: {:?}", result);
     println!("Wasm: Inference time: {:?}", result_calculation_time);
@@ -259,7 +243,7 @@ pub fn run_inference(model_index: i32, image_index: i32) -> i32 {
 
 #[no_mangle]
 pub fn run_multiple_inference(model_index: i32, image_index: i32, n: u32) -> f32 {
-    let model_filename = match get_model_filename(&model_index) {
+    let model_filename = match get_model_name(model_index) {
         Some(filename) => filename,
         None => {
             println!("Error: Invalid model index");
@@ -267,7 +251,7 @@ pub fn run_multiple_inference(model_index: i32, image_index: i32, n: u32) -> f32
         }
     };
 
-    let image_name = match get_image_name(&image_index) {
+    let image_name = match get_image_name(image_index) {
         Some(filename) => filename,
         None => {
             println!("Error: Invalid image index");
@@ -298,7 +282,7 @@ pub fn run_multiple_inference(model_index: i32, image_index: i32, n: u32) -> f32
     println!("Wasm: Context created in: {:?}", context_creation_time);
 
     for _ in 0..n {
-        let _ = get_result(&mut context, image_name, false);
+        let _ = get_result(&mut context, image_name.clone(), false);
     }
     let result_calculation_time = start.elapsed() - model_load_time;
     println!("Wasm: Inference time: {:?} for {} repeats", result_calculation_time, n);
