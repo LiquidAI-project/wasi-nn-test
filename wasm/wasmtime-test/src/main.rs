@@ -45,8 +45,20 @@ fn main() -> wasmtime::Result<()> {
     let args: Vec<String> = env::args().collect();
     let model_filename: &str = &args[1];
     let image_name: &str = &args[2];
-    let model_index = get_model_index(model_filename).unwrap();
-    let image_index = get_image_index(image_name).unwrap();
+    let model_index = match get_model_index(model_filename) {
+        Some(index) => index,
+        None => {
+            println!("Model not found: {}", model_filename);
+            return Ok(());
+        }
+    };
+    let image_index = match get_image_index(image_name) {
+        Some(index) => index,
+        None => {
+            println!("Image not found: {}", image_name);
+            return Ok(());
+        }
+    };
     let repeats: u32 = args[3].parse().unwrap();
 
     const WASM_MODULE_FILENAME: &str = "wasi-nn-onnx-test.wasm";

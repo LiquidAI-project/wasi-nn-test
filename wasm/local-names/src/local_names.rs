@@ -1,44 +1,38 @@
 extern crate lazy_static;
+extern crate glob;
 
+use local_names::glob::glob;
 use local_names::lazy_static::lazy_static;
 use std::collections::HashMap;
+use std::path::PathBuf;
 
 
 const MODEL_FOLDER: &str = "models/";
-const MODELS: [&str; 2] = [
-    "mobilenetv2-10.onnx",
-    "mobilenetv2-12.onnx"
-];
-
 const IMAGE_FOLDER: &str = "images/";
-const IMAGES : [&str; 4] = [
-    "landrover.jpg",
-    "husky.jpg",
-    "golden-retriever.jpg",
-    "bigmac.png"
-];
 
 
-lazy_static! {
-    static ref MODEL_MAP: HashMap<String, i32> = {
-        let mut model_map = HashMap::new();
-        for (index, &name) in MODELS.iter().enumerate() {
-            model_map.insert(MODEL_FOLDER.to_owned() + name, (index + 1) as i32);
-        }
-        model_map
+fn get_hashmap(folder: &str, pattern: &str) -> HashMap<String, i32> {
+    let mut output_map = HashMap::new();
+    let file_list: Vec<PathBuf> = match glob(&(folder.to_owned() + pattern)) {
+        Ok(paths) => paths.filter_map(Result::ok).collect(),
+        Err(_) => Vec::new(),
     };
+    for (index, name) in file_list.iter().enumerate() {
+        if let Some(name_str) = name.to_str() {
+            output_map.insert(name_str.to_string(), (index + 1) as i32);
+        }
+    }
+    output_map
 }
 
 lazy_static! {
-    static ref IMAGE_MAP: HashMap<String, i32> = {
-        let mut model_map = HashMap::new();
-        for (index, &name) in IMAGES.iter().enumerate() {
-            model_map.insert(IMAGE_FOLDER.to_owned() + name, (index + 1) as i32);
-        }
-        model_map
-    };
+    #[derive(Debug)]
+    static ref MODEL_MAP: HashMap<String, i32> = get_hashmap(MODEL_FOLDER, "*.onnx");
 }
 
+lazy_static! {
+    static ref IMAGE_MAP: HashMap<String, i32> = get_hashmap(IMAGE_FOLDER, "*.*");
+}
 
 
 fn get_index(map: &HashMap<String, i32>, name: &str) -> Option<i32> {
