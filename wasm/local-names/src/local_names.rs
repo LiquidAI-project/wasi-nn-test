@@ -19,7 +19,8 @@ fn get_hashmap(folder: &str, pattern: &str) -> HashMap<String, i32> {
     };
     for (index, name) in file_list.iter().enumerate() {
         if let Some(name_str) = name.to_str() {
-            output_map.insert(name_str.to_string(), (index + 1) as i32);
+            // Replace backslashes with forward slashes for Windows support
+            output_map.insert(name_str.to_string().replace("\\", "/"), (index + 1) as i32);
         }
     }
     output_map
