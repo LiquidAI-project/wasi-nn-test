@@ -87,14 +87,17 @@ fn run_model<'model>(model: &'model Session, image: Value) -> Result<ort::Sessio
         })
 }
 
-fn get_result(model: &Session, image_name: &str) -> Result<(f32, i32), ErrorType> {
+fn get_result(model: &Session, image_name: &str, verbose: bool) -> Result<(f32, i32), ErrorType> {
     const MODEL_IMAGE_WIDTH: u32 = 224;
     const MODEL_IMAGE_HEIGHT: u32 = 224;
     const MODEL_IMAGE_FILTER_TYPE: FilterType = FilterType::Triangle;
 
     // load the image and run the model
-    let model_output = load_image(image_name, MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT, MODEL_IMAGE_FILTER_TYPE)
-        .and_then(|image| run_model(&model, image))?;
+    let result_start: Instant = Instant::now();
+    let image_result = load_image(image_name, MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT, MODEL_IMAGE_FILTER_TYPE);
+    let image_load_duration: Duration = result_start.elapsed();
+    let model_output = image_result.and_then(|image| run_model(&model, image))?;
+    let model_run_duration: Duration = result_start.elapsed() - image_load_duration;
 
     // extract the results
     let model_results = model_output
@@ -113,13 +116,22 @@ fn get_result(model: &Session, image_name: &str) -> Result<(f32, i32), ErrorType
     };
 
     // find the highest score and the corresponding label
-    result
+    let final_result = result
         .view()
         .iter()
         .cloned()
         .zip(RangeFrom::<i32>{start: 1})  // add the indexes for the labels
         .max_by(|(score1, _), (score2, _)| score1.partial_cmp(score2).unwrap_or(Ordering::Equal))
-        .map_or_else(|| Err(ErrorType::NoResult), Ok)
+        .map_or_else(|| Err(ErrorType::NoResult), Ok);
+    let final_duration: Duration = result_start.elapsed() - image_load_duration - model_run_duration;
+
+    if verbose {
+        println!("Loading the image took {:?}", image_load_duration);
+        println!("Running the inference took {:?}", model_run_duration);
+        println!("Extracting the result took {:?}", final_duration);
+    }
+
+    final_result
 }
 
 fn get_error_code(error: ErrorType) -> i32 {
@@ -153,23 +165,22 @@ pub fn main() -> Result<(), i32> {
     let start: Instant = Instant::now();
     let model_result = load_model(model_filename);
     let duration1 = start.elapsed();
+    println!("Loading the model took {:?}", duration1);
 
     let model = match model_result {
         Ok(session) => session,
         Err(error) => return Err(get_error_code(error)),
     };
 
-    let result = get_result(&model, image_name);
+    let result = get_result(&model, image_name, true);
     let duration2: Duration = start.elapsed() - duration1;
 
     for _ in 0..repeats {
-        let _ = get_result(&model, image_name);
+        let _ = get_result(&model, image_name, false);
     }
     let duration3: Duration = start.elapsed() - duration1 - duration2;
 
-    println!("Loading the model took {:?}", duration1);
-    println!("Running the model took {:?}", duration2);
-    println!("Running the model {} times took {:?}", repeats, duration3);
+    println!("\nRunning the model {} times took {:?}\n", repeats, duration3);
 
     match result {
         Ok((score, class)) => {

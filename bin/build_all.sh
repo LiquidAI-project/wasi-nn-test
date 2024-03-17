@@ -1,5 +1,10 @@
 #!/bin/bash
 
+rm -f onnx-native-test
+rm -f wasmtime-test
+rm -f wasi-nn-onnx-test.wasm
+rm -f wasi-nn-onnx-test.wasm.SERIALIZED
+
 cd ../native
 cargo build --release
 cp target/release/onnx-native-test ../bin
