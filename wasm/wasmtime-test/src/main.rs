@@ -46,15 +46,19 @@ impl Ctx {
 
 
 fn main() -> wasmtime::Result<()> {
-    const WASM_MODULE_FILENAME: &str = "wasi-nn-onnx-test.wasm";
-    const WASM_MODULE_SERIALIZED_FILENAME: &str = "wasi-nn-onnx-test.wasm.SERIALIZED";
     const MODEL_DIR: &str = "models";
     const IMAGE_DIR: &str = "images";
     let shared_dirs: Vec<&str> = vec![MODEL_DIR, IMAGE_DIR];
 
     let args: Vec<String> = env::args().collect();
-    let model_filename: &str = &args[1];
-    let image_name: &str = &args[2];
+    if args.len() != 5 {
+        println!("Usage: {} <wasm module> <model> <image> <number of repeats>", args[0]);
+        return Ok(());
+    }
+
+    let wasm_module_filename: &str = &args[1];
+    let model_filename: &str = &args[2];
+    let image_name: &str = &args[3];
     let model_index = match get_model_index(model_filename) {
         Some(index) => index,
         None => {
@@ -69,7 +73,7 @@ fn main() -> wasmtime::Result<()> {
             return Ok(());
         }
     };
-    let repeats: u32 = args[3].parse().unwrap();
+    let repeats: u32 = args[4].parse().unwrap();
 
     let start: Instant = Instant::now();
 
@@ -86,24 +90,27 @@ fn main() -> wasmtime::Result<()> {
     );
     let environment_set_time = start.elapsed();
 
+    let wasm_module_serialized_name = wasm_module_filename.to_string() + ".SERIALIZED";
     let wasm_module =
-        match unsafe { Module::deserialize_file(&engine, WASM_MODULE_SERIALIZED_FILENAME) } {
+        match unsafe { Module::deserialize_file(&engine, wasm_module_serialized_name.clone()) } {
             WasmtimeResultOk(serialized_module) => serialized_module,
             Err(_) => {
-                let loaded_module = Module::from_file(&engine, WASM_MODULE_FILENAME)?;
+                let loaded_module = Module::from_file(&engine, wasm_module_filename)?;
                 let byte_module = loaded_module.serialize()?;
-                std::fs::write(WASM_MODULE_SERIALIZED_FILENAME, byte_module).unwrap();
+                std::fs::write(wasm_module_serialized_name, byte_module).unwrap();
 
                 loaded_module
             }
         };
 
     // add the module to the linker
-    linker.module(&mut store, "wasi-nn", &wasm_module)?;
+    const MODULE_NAME: &str = "test";
+    const FUNCTION_NAME: &str = "run_inference";
+    linker.module(&mut store, MODULE_NAME, &wasm_module)?;
     let module_load_time = start.elapsed() - environment_set_time;
 
     let inference_function = linker
-        .get(&mut store, "wasi-nn", "run_inference").unwrap()
+        .get(&mut store, MODULE_NAME, FUNCTION_NAME).unwrap()
         .into_func().unwrap()
         .typed::<(i32, i32, u32), (i32,)>(&mut store).unwrap();
     let function_load_time = start.elapsed() - environment_set_time - module_load_time;
