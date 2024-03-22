@@ -1,10 +1,10 @@
 extern crate wasmtime;
 extern crate wasmtime_wasi;
 extern crate wasi_common;
-extern crate wasmtime_onnx;
 extern crate anyhow;
 extern crate cap_std;
 extern crate local_names;
+extern crate wasmtime_wasi_nn;
 
 use anyhow::{Ok, Result};
 use local_names::{get_image_index, get_model_index};
@@ -12,13 +12,13 @@ use std::{env, path::Path, time::Instant};
 use wasmtime::{Config, Engine, Module, Store};
 use wasi_common::{sync::Dir, sync::WasiCtxBuilder, WasiCtx};
 use wasmtime::component::__internal::wasmtime_environ::__core::result::Result::Ok as WasmtimeResultOk;
-use wasmtime_onnx::WasiNnOnnxCtx;
+use wasmtime_wasi_nn::{InMemoryRegistry, WasiNnCtx, backend::onnxruntime::OnnxBackend};
 
 
 /// The host state for running wasi-nn tests.
 struct Ctx {
     wasi: WasiCtx,
-    wasi_nn: WasiNnOnnxCtx,
+    wasi_nn: WasiNnCtx,
 }
 impl Ctx {
     fn new(directories: &Vec<&str>) -> Result<Self> {
@@ -35,7 +35,10 @@ impl Ctx {
         }
 
         let wasi = builder.build();
-        let wasi_nn = WasiNnOnnxCtx::default();
+        let wasi_nn = WasiNnCtx::new(
+            [OnnxBackend::default().into()],
+            InMemoryRegistry::new().into()
+        );
 
         Ok(Self { wasi, wasi_nn })
     }
@@ -75,7 +78,7 @@ fn main() -> wasmtime::Result<()> {
     let mut linker = wasmtime::Linker::new(&engine);
 
     wasi_common::sync::add_to_linker(&mut linker, |host: &mut Ctx| &mut host.wasi)?;
-    wasmtime_onnx::add_to_linker(&mut linker, |host| &mut host.wasi_nn)?;
+    wasmtime_wasi_nn::witx::add_to_linker(&mut linker, |host| &mut host.wasi_nn)?;
 
     let mut store = Store::new(
         &engine,

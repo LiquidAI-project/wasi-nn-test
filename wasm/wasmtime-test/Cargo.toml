@@ -5,14 +5,14 @@ authors = ["Ville Heikkilä"]
 
 [dependencies]
 anyhow = "1.0.80"
-wasmtime = { version = "18.0.2", features = ["component-model", "runtime", "cranelift"] }
 tracing = "0.1.26"
 thiserror = "1.0.25"
 cap-std = "3.0.0"
-wasi-common = { version = "18.0.2", features = ["sync"] }
-wasmtime-wasi = "18.0.2"
-wasmtime-onnx = { path = "../wasmtime-onnx" }
 local-names = { path = "../local-names" }
+wasmtime = { path = "../../wasmtime-repo/crates/wasmtime", features = ["component-model", "runtime", "cranelift"] }
+wasmtime-wasi = { path = "../../wasmtime-repo/crates/wasi" }
+wasi-common = { path = "../../wasmtime-repo/crates/wasi-common", features = ["sync"] }
+wasmtime-wasi-nn = { path = "../../wasmtime-repo/crates/wasi-nn", features = ["onnx"] }
 
 [build-dependencies]
 walkdir = "2.5.0"
