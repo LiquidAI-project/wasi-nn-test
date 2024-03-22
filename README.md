@@ -3,6 +3,11 @@
 ## Build instructions
 
 ```bash
+# clone the repository with the recursive flag to get all submodule data
+git clone --recursive git@github.com:LiquidAI-project/wasi-nn-test.git
+cd wasi-nn-test
+
+# run the build script in the bin folder
 cd bin
 ./build_all.sh
 ```
