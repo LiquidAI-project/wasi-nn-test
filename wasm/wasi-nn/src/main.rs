@@ -211,7 +211,7 @@ pub fn run_inference(model_index: i32, image_index: i32, repeats: u32) -> i32 {
             return get_error_code(error);
         }
     };
-    let context_creation_time = start.elapsed();
+    let context_creation_time = start.elapsed() - model_load_time;
     println!("Execution context creation took {:?}", context_creation_time);
 
     let result = get_result(&mut context, image_name.clone(), true);
