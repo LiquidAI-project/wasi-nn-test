@@ -18,7 +18,7 @@ For native ONNX runtime test:
 
 ```bash
 cd bin
-./onnx-native-test models/mobilenetv2-10.onnx images/landrover.jpg 100
+./onnx-native-test models/mobilenetv2-10.onnx images/husky.jpg 100
 ```
 
 For Wasmtime with ONNX runtime with wasi-nn test:
