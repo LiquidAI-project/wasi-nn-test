@@ -19,6 +19,9 @@ echo "Compiling the native ONNX runtime test program"
 cd ../native
 cargo build --profile ${target_profile}
 cp target/release/onnx-native-test ../bin
+# export ORT_DYLIB_PATH="$(pwd)/target/release/libonnxruntime.so"
+# on Windows use the following export instead
+# export ORT_DYLIB_PATH="$(pwd)/target/release/onnxruntime.dll"
 
 echo "Compiling the wasi-nn Wasm module"
 cd ../wasm/wasi-nn
@@ -34,3 +37,5 @@ echo "Compiling the wasmtime test program"
 cd ../wasmtime-test
 cargo build --profile ${target_profile}
 cp target/release/wasmtime-test ../../bin
+
+cd ../../bin

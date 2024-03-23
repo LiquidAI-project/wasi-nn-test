@@ -36,11 +36,16 @@ fn load_model(filename: &str) -> Result<Session, ErrorType> {
             eprintln!("Error setting optimization level: {:?}", error);
             ErrorType::Optimization
         })?
-        .with_intra_threads(12)
-        .map_err(|error| {
-            eprintln!("Error setting intra threads: {:?}", error);
-            ErrorType::Threads
-        })?
+        // .with_inter_threads(12)
+        // .map_err(|error| {
+        //     eprintln!("Error setting inter threads: {:?}", error);
+        //     ErrorType::Threads
+        // })?
+        // .with_intra_threads(12)
+        // .map_err(|error| {
+        //     eprintln!("Error setting intra threads: {:?}", error);
+        //     ErrorType::Threads
+        // })?
         .with_model_from_file(filename)
         .map_err(|error| {
             eprintln!("Error loading model: {:?}", error);
@@ -154,7 +159,7 @@ pub fn main() -> Result<(), i32> {
 
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
-        println!("Usage: {} <model> <image> <number of repeats>", args[0]);
+        println!("Usage: {} <model> <image> <number of repeats2>", args[0]);
         return Err(-10);
     }
 
@@ -162,9 +167,28 @@ pub fn main() -> Result<(), i32> {
     let image_name: &str = &args[2];
     let repeats: u32 = args[3].parse().unwrap();
 
+    // initialize the environment
     let start: Instant = Instant::now();
+    let used_execution_providers = [
+        // ort::CUDAExecutionProvider::default().build(),
+        // ort::TensorRTExecutionProvider::default().build(),
+        // ort::OpenVINOExecutionProvider::default().build(),
+        ort::CPUExecutionProvider::default().build()
+    ];
+    let _ = match ort::init()
+        .with_execution_providers(used_execution_providers)
+        .commit() {
+        Ok(_) => (),
+        Err(error) => {
+            eprintln!("Error initializing ONNXRuntime: {:?}", error);
+            return Err(get_error_code(ErrorType::SessionCreation));
+        }
+    };
+    let environment_duration: Duration = start.elapsed();
+    println!("Initializing the environment took {:?}", environment_duration);
+
     let model_result = load_model(model_filename);
-    let duration1 = start.elapsed();
+    let duration1 = start.elapsed() - environment_duration;
     println!("Loading the model took {:?}", duration1);
 
     let model = match model_result {
@@ -173,12 +197,12 @@ pub fn main() -> Result<(), i32> {
     };
 
     let result = get_result(&model, image_name, true);
-    let duration2: Duration = start.elapsed() - duration1;
+    let duration2: Duration = start.elapsed() - environment_duration - duration1;
 
     for _ in 0..repeats {
         let _ = get_result(&model, image_name, false);
     }
-    let duration3: Duration = start.elapsed() - duration1 - duration2;
+    let duration3: Duration = start.elapsed() - environment_duration - duration1 - duration2;
 
     println!("\nRunning the model {} times took {:?}\n", repeats, duration3);
 
