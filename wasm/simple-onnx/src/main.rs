@@ -70,7 +70,8 @@ fn get_result(runnable_model: &RunnableModel, image_name: String, verbose: bool)
 
     let result = match runnable_model.run(tvec!(image.into())) {
         Ok(result) => result,
-        Err(_) => {
+        Err(error) => {
+            eprintln!("{:?}", error);
             return Err(ErrorType::ModelRun);
         }
     };

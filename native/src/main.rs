@@ -5,7 +5,7 @@ extern crate ndarray;
 use std::{env, cmp::Ordering, convert::TryInto, ops::RangeFrom, time::{Duration, Instant}};
 use image::{imageops::FilterType, ImageBuffer, ImageError, Rgb};
 use ndarray::{Array4, OwnedRepr, prelude::{ArrayBase, Dim}};
-use ort::{GraphOptimizationLevel, Session, Tensor, Value};
+use ort::{GraphOptimizationLevel, Session, Value};
 
 type RawImage = ImageBuffer<Rgb<u8>, Vec<u8>>;
 type NormalizedImage = ArrayBase<OwnedRepr<f32>, Dim<[usize; 4]>>;
@@ -46,7 +46,7 @@ fn load_model(filename: &str) -> Result<Session, ErrorType> {
         //     eprintln!("Error setting intra threads: {:?}", error);
         //     ErrorType::Threads
         // })?
-        .with_model_from_file(filename)
+        .commit_from_file(filename)
         .map_err(|error| {
             eprintln!("Error loading model: {:?}", error);
             ErrorType::ModelLoad
@@ -85,7 +85,7 @@ fn load_image(path: &str, nwidth: u32, nheight: u32, filter: FilterType) -> Resu
 
 fn run_model<'model>(model: &'model Session, image: Value) -> Result<ort::SessionOutputs<'model>, ErrorType> {
     // let cloned_image = image.clone();
-    model.run([image])
+    model.run([image.into()])
         .map_err(|error| {
             eprintln!("Error running model: {:?}", error);
             ErrorType::ModelRun
@@ -101,27 +101,27 @@ fn get_result(model: &Session, image_name: &str, verbose: bool) -> Result<(f32, 
     let result_start: Instant = Instant::now();
     let image_result = load_image(image_name, MODEL_IMAGE_WIDTH, MODEL_IMAGE_HEIGHT, MODEL_IMAGE_FILTER_TYPE);
     let image_load_duration: Duration = result_start.elapsed();
-    let model_output = image_result.and_then(|image| run_model(&model, image))?;
+    let mut model_output = image_result.and_then(|image| run_model(&model, image))?;
     let model_run_duration: Duration = result_start.elapsed() - image_load_duration;
 
     // extract the results
-    let model_results = model_output
-        .iter()
-        .map(|(_, output_value)| output_value.extract_tensor::<f32>().map_err(|error| {
-            eprintln!("Error extracting tensor: {:?}", error);
-            ErrorType::TensorExtract
-        }))
-        .collect::<Result<Vec<Tensor<f32>>, ErrorType>>()?;
-    let temp_result = model_results
-        .first()
-        .map_or_else(|| Err(ErrorType::NoResult), Ok);
-    let result = match temp_result {
+    let model_results = match model_output.pop_first() {
+        Some((_, value)) => value,
+        None => {
+            eprintln!("No result found");
+            return Err(ErrorType::NoResult);
+        },
+    };
+    let output_tensor = match model_results.try_extract_tensor::<f32>() {
         Ok(value) => value,
-        Err(error) => return Err(error),
+        Err(error) => {
+            eprintln!("Error extracting tensor: {:?}", error);
+            return Err(ErrorType::TensorExtract)
+        },
     };
 
     // find the highest score and the corresponding label
-    let final_result = result
+    let final_result = output_tensor
         .view()
         .iter()
         .cloned()
