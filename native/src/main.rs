@@ -155,7 +155,7 @@ fn get_error_code(error: ErrorType) -> i32 {
 }
 
 pub fn main() -> Result<(), i32> {
-    tracing_subscriber::fmt::init();
+    // tracing_subscriber::fmt::init();
 
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {

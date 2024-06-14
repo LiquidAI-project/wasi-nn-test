@@ -1,6 +1,6 @@
 [package]
 name = "local-names"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Ville Heikkilä"]
 
 [dependencies]
