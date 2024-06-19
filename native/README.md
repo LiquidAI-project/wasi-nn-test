@@ -31,3 +31,20 @@ Cross compilation with release build from Ubuntu 22.04 on amd64 architecture (on
 
     cargo build --target=aarch64-unknown-linux-gnu --profile release
     ```
+
+- To `armv7-unknown-linux-gnueabihf` (WIP):
+
+    ```bash
+    sudo apt-get install -y gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf
+    rustup target add armv7-unknown-linux-gnueabihf
+
+    # compile the onnxruntime binaries (will take a while and require several GBs of space)
+    sudo apt-get install -y git cmake python3 python3-pip
+    git clone --recursive https://github.com/Microsoft/onnxruntime.git onnxruntime
+    cd onnxruntime
+    # the build command needs to be adjusted (WIP)
+    ./build.sh --config Release --parallel --compile_no_warning_as_error --skip_submodule_sync --arm
+    cd ..
+
+    ORT_LIB_LOCATION=onnxruntime/build/Linux cargo build --target=armv7-unknown-linux-gnueabihf --profile release
+    ```
