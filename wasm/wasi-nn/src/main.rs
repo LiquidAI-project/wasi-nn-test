@@ -93,10 +93,7 @@ fn load_image(path: String, width: u32, height: u32) -> Result<Vec<u8>, String> 
 
 fn get_execution_context(model: &Graph) -> Result<GraphExecutionContext<'_>, ErrorType> {
     match model.init_execution_context() {
-        Ok(context) => {
-            println!("Context created: {:?}", context);
-            Ok(context)
-        },
+        Ok(context) => Ok(context),
         Err(_) => Err(ErrorType::SessionCreation),
     }
 }
@@ -198,10 +195,7 @@ pub fn run_inference(model_index: i32, image_index: i32, repeats: u32) -> i32 {
     let start: Instant = Instant::now();
 
     let model = match load_model(model_filename) {
-        Ok(graph) => {
-            println!("Model loaded: {:?}", graph);
-            graph
-        },
+        Ok(graph) => graph,
         Err(error) => {
             println!("Error loading model: {:?}", error);
             return get_error_code(ErrorType::ModelLoad);
@@ -211,10 +205,7 @@ pub fn run_inference(model_index: i32, image_index: i32, repeats: u32) -> i32 {
     println!("Loading the model took {:?}", model_load_time);
 
     let mut context = match get_execution_context(&model) {
-        Ok(context) => {
-            println!("Context created: {:?}", context);
-            context
-        },
+        Ok(context) => context,
         Err(error) => {
             println!("Error creating context: {:?}", error);
             return get_error_code(error);
