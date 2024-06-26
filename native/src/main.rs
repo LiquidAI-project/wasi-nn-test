@@ -155,7 +155,7 @@ fn get_error_code(error: ErrorType) -> i32 {
 }
 
 pub fn main() -> Result<(), i32> {
-    // tracing_subscriber::fmt::init();
+    tracing_subscriber::fmt::init();
 
     let args: Vec<String> = env::args().collect();
     if args.len() != 4 {
@@ -170,9 +170,9 @@ pub fn main() -> Result<(), i32> {
     // initialize the environment
     let start: Instant = Instant::now();
     let used_execution_providers = [
-        // ort::CUDAExecutionProvider::default().build(),
-        // ort::TensorRTExecutionProvider::default().build(),
-        // ort::OpenVINOExecutionProvider::default().build(),
+        ort::CUDAExecutionProvider::default().build(),
+        ort::TensorRTExecutionProvider::default().build(),
+        ort::OpenVINOExecutionProvider::default().build(),
         ort::CPUExecutionProvider::default().build()
     ];
     let _ = match ort::init()
