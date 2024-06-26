@@ -32,7 +32,7 @@ pub enum ErrorType {
 fn load_model(filename: String) -> Result<Graph, wasi_nn::Error> {
     GraphBuilder::new(
         GraphEncoding::Onnx,
-        ExecutionTarget::CPU
+        ExecutionTarget::GPU
     ).build_from_files([filename])
 }
 

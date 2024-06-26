@@ -2,3 +2,5 @@
 **/target/*
 **/.vscode/settings.json
 **/.vscode/ltex.*
+**/*.so*
+**/*.dll*

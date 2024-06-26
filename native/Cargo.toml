@@ -6,8 +6,7 @@ authors = ["Ville Heikkilä"]
 [dependencies]
 image = "0.25.1"
 ndarray = "0.15.6"
-ort = { version = "2.0.0-rc.2", default-features = false, features = ["ndarray", "download-binaries", "copy-dylibs", "cuda", "openvino", "tensorrt"] }
-# ort = { version = "2.0.0-alpha.4", default-features = false, features = ["ndarray", "download-binaries", "copy-dylibs", "load-dynamic", "cuda", "openvino", "tensorrt"] }
+ort = { version = "2.0.0-rc.2", default-features = false, features = ["ndarray", "download-binaries", "copy-dylibs", "load-dynamic", "cuda", "openvino", "tensorrt"] }
 tracing-subscriber = "0.3.18"
 
 # [profile.release]
