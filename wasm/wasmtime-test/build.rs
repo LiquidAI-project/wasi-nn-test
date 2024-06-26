@@ -11,19 +11,15 @@ fn main() {
     // - better solution would be have the original code fixed
     // - or at least have a fork of the submodule with the fix as the source for this crate
 
-    let onnx_runtime_file = "../../wasmtime-repo/crates/wasi-nn/src/backend/onnxruntime.rs";
-
-    let output1 = Command::new("sed")
-        .arg("-i")
-        .arg("s/.with_model_from_memory/.commit_from_memory/")
-        .arg(onnx_runtime_file)
+    let output1 = Command::new("cp")
+        .arg("wasi-nn/Cargo.toml")
+        .arg("../../wasmtime-repo/crates/wasi-nn/Cargo.toml")
         .output()
         .expect("Failed to execute command");
 
-    let output2 = Command::new("sed")
-        .arg("-i")
-        .arg(r"s/\].extract_raw_tensor/\].try_extract_raw_tensor/")
-        .arg(onnx_runtime_file)
+    let output2 = Command::new("cp")
+        .arg("wasi-nn/onnxruntime.rs")
+        .arg("../../wasmtime-repo/crates/wasi-nn/src/backend/onnxruntime.rs")
         .output()
         .expect("Failed to execute command");
 
