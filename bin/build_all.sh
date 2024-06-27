@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 target_profile=$1
 if [ -z "$target_profile" ]
 then
