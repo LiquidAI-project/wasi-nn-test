@@ -1,0 +1,17 @@
+# Dockerfile to test cross compilation to arm64
+
+FROM ubuntu:22.04
+
+# install rust and the essential build tools
+RUN apt-get update && apt-get upgrade -y && apt-get install -y curl build-essential
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup.sh && sh rustup.sh -y && rm rustup.sh
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+# install the cross compilation tools
+RUN apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
+RUN rustup target add aarch64-unknown-linux-gnu
+
+# copy the source code and build the project
+COPY . /app
+WORKDIR /app
+RUN cargo build --target=aarch64-unknown-linux-gnu --profile release

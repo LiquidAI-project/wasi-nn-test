@@ -1,13 +1,13 @@
 [package]
 name = "wasmtime-test"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Ville Heikkilä"]
 
 [dependencies]
-anyhow = "1.0.80"
-tracing = "0.1.26"
-thiserror = "1.0.25"
-cap-std = "3.0.0"
+anyhow = "1.0.86"
+# tracing = "0.1.40"
+# thiserror = "1.0.61"
+cap-std = "3.1.0"
 local-names = { path = "../local-names" }
 wasmtime = { path = "../../wasmtime-repo/crates/wasmtime", features = ["component-model", "runtime", "cranelift"] }
 wasmtime-wasi = { path = "../../wasmtime-repo/crates/wasi" }
@@ -15,7 +15,7 @@ wasi-common = { path = "../../wasmtime-repo/crates/wasi-common", features = ["sy
 wasmtime-wasi-nn = { path = "../../wasmtime-repo/crates/wasi-nn", features = ["onnx"] }
 
 [build-dependencies]
-walkdir = "2.5.0"
+# walkdir = "2.5.0"
 
 [profile.release-lto]
 inherits = "release"
