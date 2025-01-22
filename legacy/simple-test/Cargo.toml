@@ -5,10 +5,10 @@ authors = ["Ville Heikkilä"]
 
 [dependencies]
 anyhow = "1.0.80"
-wasmtime = { version = "18.0.2", features = ["runtime", "cranelift"] }
+wasmtime = { version = "23.0.3", features = ["runtime", "cranelift"] }
 tracing = "0.1.26"
 thiserror = "1.0.25"
-cap-std = "3.0.0"
+cap-std = "3.3.0"
 wasi-common = { version = "18.0.2", features = ["sync"] }
 wasmtime-wasi = "18.0.2"
 local-names = { path = "../../wasm/local-names" }
