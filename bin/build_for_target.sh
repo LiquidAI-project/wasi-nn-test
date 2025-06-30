@@ -22,7 +22,6 @@ else
 fi
 echo "Building release build to target: ${target_profile}"
 
-rustup target add wasm32-wasi
 rustup target add ${target}
 linker_variable=$(echo "CARGO_TARGET_$(echo "${target^^}" | sed "s/-/_/g")_LINKER")
 export ${linker_variable}=${linker}

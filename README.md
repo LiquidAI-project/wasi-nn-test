@@ -35,11 +35,11 @@ Currently, only CPU is supported, but various GPUs should be usable with minor m
 Perquisites (possibly incomplete list):
 
 - [Rust](https://www.rust-lang.org/) for compiling the programs.
-    - Tested with the latest stable channel version (1.77.0).
+    - Tested with the latest stable channel version (1.88.0).
 - [Bash](https://www.gnu.org/software/bash/) for running the build script.
     - On Windows the [Git Bash](https://gitforwindows.org/) can be used.
 
-Testes on WSL 2 (with Ubuntu 22.04) and Windows 10 operating systems.
+Testes on WSL 2 (with Ubuntu 24.04) and Windows 11 operating systems.
 
 ```bash
 # clone the repository with the recursive flag to get all submodule data

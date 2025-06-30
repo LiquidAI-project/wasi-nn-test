@@ -13,7 +13,8 @@ else
 fi
 echo "Building with profile: ${target_profile}"
 
-rustup target add wasm32-wasi
+wasi_target="wasm32-wasip1"
+rustup target add ${wasi_target}
 
 rm -f onnx-native-test
 rm -f wasmtime-test
@@ -32,13 +33,13 @@ cp target/${build_folder}/onnx-native-test ../bin
 
 echo "Compiling the wasi-nn Wasm module"
 cd ../wasm/wasi-nn
-cargo build --profile ${target_profile} --target=wasm32-wasi
-cp target/wasm32-wasi/${build_folder}/wasi-nn-onnx-test.wasm ../../bin
+cargo build --profile ${target_profile} --target=${wasi_target}
+cp target/${wasi_target}/${build_folder}/wasi-nn-onnx-test.wasm ../../bin
 
 echo "Compiling the simple, non wasi-nn, Wasm module"
 cd ../simple-onnx
-cargo build --profile ${target_profile} --target=wasm32-wasi
-cp target/wasm32-wasi/${build_folder}/simple-onnx.wasm ../../bin
+cargo build --profile ${target_profile} --target=${wasi_target}
+cp target/${wasi_target}/${build_folder}/simple-onnx.wasm ../../bin
 
 echo "Compiling the wasmtime test program"
 cd ../wasmtime-test
